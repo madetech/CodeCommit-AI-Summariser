@@ -43,7 +43,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // --- Function to read the CSV and find completed repos ---
 async function getProcessedRepositories() {
     if (!fileExists) {
-        return new Set(); // Return an empty set if the file doesn't exist
+        return new Set();
     }
     const processedRepos = new Set();
     return new Promise((resolve, reject) => {
@@ -109,7 +109,7 @@ async function getAiSummaryAndTech(readmeText) {
     const maxRetries = 4;
     let initialDelay = 2000; // start with a 2-second delay
 
-    // --- NEW: Loop for Retries ---
+    // --- Loop for Retries ---
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             const result = await model.generateContent(prompt);
@@ -118,7 +118,6 @@ async function getAiSummaryAndTech(readmeText) {
             const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedData = JSON.parse(jsonString);
 
-            // If successful, return the data immediately
             return {
                 summary: parsedData.summary || "Summary not generated",
                 tech: parsedData.tech_stack || "Tech stack not identified",
@@ -126,19 +125,16 @@ async function getAiSummaryAndTech(readmeText) {
         } catch (error) {
             console.warn(`   -> [WARN] API call failed on attempt ${attempt + 1}/${maxRetries}. Retrying...`);
 
-            // If this was the last attempt, log the final error
             if (attempt === maxRetries - 1) {
                 console.error("[ERROR] Gemini API call failed after all retries:", error.message);
                 break; // Exit the loop
             }
 
-            // Wait for the calculated delay before the next attempt
             await delay(initialDelay);
-            initialDelay *= 2; // Double the delay for the next backoff
+            initialDelay *= 2;
         }
     }
 
-    // This is the fallback if all retries fail
     return { summary: "Error: AI analysis failed after multiple retries", tech: "Error" };
 }
 
@@ -152,7 +148,6 @@ async function main() {
 
         const processedRepos = await getProcessedRepositories();
 
-        // 1. Get all repository names from AWS CodeCommit
         console.log("Fetching repository list from AWS CodeCommit...");
         const listReposCommand = new ListRepositoriesCommand({});
         const repoListResponse = await codecommitClient.send(listReposCommand);
@@ -203,5 +198,4 @@ async function main() {
     }
 }
 
-// Run the main function
 main();
